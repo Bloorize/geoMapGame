@@ -97,9 +97,22 @@ export const getRandomLocation = async (sv: google.maps.StreetViewService, regio
         try {
             const result = await sv.getPanorama({
                 location: latLng,
-                radius: 100000,
+                radius: 10000,
                 source: google.maps.StreetViewSource.OUTDOOR
             });
+
+            // If a specific state/region is selected, verify it's in the description
+            const description = result.data.location?.description || '';
+            let isStateMatch = true;
+
+            if (region === 'US') {
+                isStateMatch = description.includes('USA') || description.includes('United States');
+            } else if (region !== 'global' && regionBounds[region]) {
+                isStateMatch = description.includes(region);
+            }
+
+            if (!isStateMatch) return null;
+
             return {
                 lat: result.data.location?.latLng?.lat() || lat,
                 lng: result.data.location?.latLng?.lng() || lng,
