@@ -156,7 +156,7 @@ function App() {
     try {
       await loadGoogleMaps(mapsKey)
       const svService = new google.maps.StreetViewService()
-      const loc = await getRandomLocation(svService, region === 'US' ? 'north-america' : region)
+      const loc = await getRandomLocation(svService, region)
       setLocation(loc)
 
       const panorama = new google.maps.StreetViewPanorama(
