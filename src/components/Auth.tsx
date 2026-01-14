@@ -29,7 +29,8 @@ export default function Auth({ onSession }: AuthProps) {
                     email,
                     password,
                     options: {
-                        data: { username }
+                        data: { username },
+                        emailRedirectTo: window.location.origin + window.location.pathname
                     }
                 })
                 if (error) throw error
