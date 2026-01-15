@@ -11,7 +11,8 @@ export const loadGoogleMaps = async (apiKey: string): Promise<void> => {
         libraries: ['streetView', 'places']
     });
 
-    await loader.load();
+    console.log('GeoQuest AI v1.1.0 - Optimized Maps');
+    await (loader as any).load();
 };
 
 const regionBounds: Record<string, { latRange: [number, number], lngRange: [number, number] }> = {
