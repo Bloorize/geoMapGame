@@ -1,30 +1,17 @@
-import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
+import { Loader } from '@googlemaps/js-api-loader';
 
 export type Region = 'global' | 'europe' | 'north-america' | 'south-america' | 'US';
 
-export const loadGoogleMaps = (apiKey: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-        if (window.google?.maps) {
-            resolve();
-            return;
-        }
+export const loadGoogleMaps = async (apiKey: string): Promise<void> => {
+    if (window.google?.maps) return;
 
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=streetView,places&callback=initMaps`;
-        script.async = true;
-        script.defer = true;
-
-        (window as any).initMaps = () => {
-            resolve();
-        };
-
-        script.onerror = (err) => {
-            console.error('Script Load Error:', err);
-            reject(err);
-        };
-
-        document.head.appendChild(script);
+    const loader = new Loader({
+        apiKey,
+        version: 'weekly',
+        libraries: ['streetView', 'places']
     });
+
+    await loader.load();
 };
 
 const regionBounds: Record<string, { latRange: [number, number], lngRange: [number, number] }> = {
@@ -45,23 +32,27 @@ export const getRandomLocation = async (sv: google.maps.StreetViewService, regio
         const latLng = { lat, lng };
 
         try {
+            const isRegional = region !== 'global';
             const result = await sv.getPanorama({
                 location: latLng,
-                radius: 10000,
+                radius: isRegional ? 50000 : 10000, // Increase radius for regional searches
                 source: google.maps.StreetViewSource.OUTDOOR
             });
 
-            // If a specific state/region is selected, verify it's in the description
             const description = result.data.location?.description || '';
-            let isStateMatch = true;
+            let isMatch = true;
 
             if (region === 'US') {
-                isStateMatch = description.includes('USA') || description.includes('United States');
-            } else if (region !== 'global' && regionBounds[region]) {
-                isStateMatch = description.includes(region);
+                isMatch = description.includes('USA') || description.includes('United States');
+            } else if (region === 'europe') {
+                // For continents, we rely on bounds + broad country check if possible, 
+                // but usually bounds are enough. Let's just avoid searching for the string "europe"
+                isMatch = true;
+            } else if (region === 'north-america' || region === 'south-america') {
+                isMatch = true;
             }
 
-            if (!isStateMatch) return null;
+            if (!isMatch) return null;
 
             return {
                 lat: result.data.location?.latLng?.lat() || lat,
@@ -74,8 +65,16 @@ export const getRandomLocation = async (sv: google.maps.StreetViewService, regio
     };
 
     let location = null;
-    while (!location) {
+    let attempts = 0;
+    while (!location && attempts < 50) {
+        attempts++;
         location = await tryFind();
     }
+
+    if (!location) {
+        // Fallback to global if regional search fails after 50 attempts
+        return getRandomLocation(sv, 'global');
+    }
+
     return location;
 };
