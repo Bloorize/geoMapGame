@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import './App.css'
 import { MapPin, Send, HelpCircle, Trophy, RefreshCw, AlertCircle, LogOut, User as UserIcon } from 'lucide-react'
-import { loadGoogleMaps, getRandomLocation } from './utils/maps'
+import { loadGoogleMaps, getRandomLocation, type Region } from './utils/maps'
 import { getAIHint } from './services/ai'
 import { supabase } from './utils/supabase'
 import Auth from './components/Auth'
@@ -12,22 +12,12 @@ interface Message {
   text: string
 }
 
-const REGIONS = [
+const REGIONS: { id: Region, name: string, icon: string }[] = [
   { id: 'global', name: 'Global', icon: '🌍' },
   { id: 'europe', name: 'Europe', icon: '🇪🇺' },
   { id: 'north-america', name: 'N. America', icon: '🏔️' },
   { id: 'south-america', name: 'S. America', icon: '🌴' },
   { id: 'US', name: 'United States', icon: '🇺🇸' },
-];
-
-const US_STATES = [
-  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware',
-  'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky',
-  'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi',
-  'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico',
-  'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania',
-  'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
-  'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
 ];
 
 function App() {
@@ -41,7 +31,7 @@ function App() {
   const [location, setLocation] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isError, setIsError] = useState(false)
-  const [selectedRegion, setSelectedRegion] = useState('global')
+  const [selectedRegion, setSelectedRegion] = useState<Region>('global')
 
   const panoramaRef = useRef<google.maps.StreetViewPanorama | null>(null)
   const chatEndRef = useRef<HTMLDivElement | null>(null)
@@ -131,7 +121,7 @@ function App() {
     setSession(null)
   }
 
-  const startGame = async (region: string = selectedRegion) => {
+  const startGame = async (region: Region = selectedRegion) => {
     const mapsKey = import.meta.env.VITE_MAPS_API_KEY
     const geminiKey = import.meta.env.VITE_GEMINI_API_KEY
 
@@ -146,10 +136,7 @@ function App() {
     setGameState('playing')
     setTurns(3)
 
-    const isStateGame = region !== 'global' && !['europe', 'south-america', 'north-america', 'US'].includes(region)
-    const initialMsg = isStateGame
-      ? `Welcome to ${region}! Can you find which city we're in?`
-      : 'Hello Explorer! Ask me anything about this location to narrow down your guess.'
+    const initialMsg = 'Hello Explorer! Ask me anything about this location to narrow down your guess.'
 
     setMessages([{ role: 'ai', text: initialMsg }])
 
@@ -230,7 +217,7 @@ function App() {
       if (matchCountry) matchCount++
 
       // US Country-Only Exception
-      const isUSGame = selectedRegion === 'US' || US_STATES.includes(selectedRegion)
+      const isUSGame = selectedRegion === 'US'
       if (isUSGame && matchCount === 1 && matchCountry) {
         matchCount = 0 // Country-only in US doesn't count
       }
@@ -309,17 +296,6 @@ function App() {
               ))}
             </div>
 
-            <div className="state-select-container">
-              <label>Or pick a specific US State:</label>
-              <select
-                className="glass-select"
-                value={US_STATES.includes(selectedRegion) ? selectedRegion : ''}
-                onChange={(e) => setSelectedRegion(e.target.value)}
-              >
-                <option value="">Select a State...</option>
-                {US_STATES.map(state => <option key={state} value={state}>{state}</option>)}
-              </select>
-            </div>
 
             <button className="btn btn-primary start-btn" onClick={() => startGame()}>
               Start Discovery
