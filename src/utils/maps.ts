@@ -1,18 +1,16 @@
-import { Loader } from '@googlemaps/js-api-loader';
+import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 export type Region = 'global' | 'europe' | 'north-america' | 'south-america' | 'US';
 
 export const loadGoogleMaps = async (apiKey: string): Promise<void> => {
     if (window.google?.maps) return;
 
-    const loader = new Loader({
-        apiKey,
-        version: 'weekly',
-        libraries: ['streetView', 'places']
+    setOptions({
+        key: apiKey,
+        v: 'weekly'
     });
 
-    console.log('GeoQuest AI v1.1.0 - Optimized Maps');
-    await (loader as any).load();
+    await importLibrary('streetView');
 };
 
 const regionBounds: Record<string, { latRange: [number, number], lngRange: [number, number] }> = {
